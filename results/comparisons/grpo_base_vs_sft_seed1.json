@@ -1,0 +1,86 @@
+{
+  "a": "results/grpo_base_seed1",
+  "b": "results/sft_seed1",
+  "overall": {
+    "score": {
+      "mean_diff": 0.15083333333333332,
+      "ci_low": 0.13749999999999996,
+      "ci_high": 0.165,
+      "n": 400,
+      "ci_excludes_zero": true
+    },
+    "exact": {
+      "mean_diff": 0.67,
+      "ci_low": 0.625,
+      "ci_high": 0.715,
+      "n": 400,
+      "ci_excludes_zero": true
+    }
+  },
+  "slices": {
+    "clean": {
+      "score": {
+        "mean_diff": 0.06333333333333332,
+        "ci_low": 0.04833333333333332,
+        "ci_high": 0.07999999999999999,
+        "n": 100,
+        "ci_excludes_zero": true
+      },
+      "exact": {
+        "mean_diff": 0.38,
+        "ci_low": 0.29,
+        "ci_high": 0.48,
+        "n": 100,
+        "ci_excludes_zero": true
+      }
+    },
+    "encoding": {
+      "score": {
+        "mean_diff": 0.18166666666666664,
+        "ci_low": 0.16166666666666665,
+        "ci_high": 0.20166666666666663,
+        "n": 100,
+        "ci_excludes_zero": true
+      },
+      "exact": {
+        "mean_diff": 0.85,
+        "ci_low": 0.78,
+        "ci_high": 0.92,
+        "n": 100,
+        "ci_excludes_zero": true
+      }
+    },
+    "missing_field": {
+      "score": {
+        "mean_diff": 0.265,
+        "ci_low": 0.23333333333333336,
+        "ci_high": 0.3016666666666666,
+        "n": 100,
+        "ci_excludes_zero": true
+      },
+      "exact": {
+        "mean_diff": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 100,
+        "ci_excludes_zero": true
+      }
+    },
+    "renamed_field": {
+      "score": {
+        "mean_diff": 0.09333333333333331,
+        "ci_low": 0.06999999999999999,
+        "ci_high": 0.11666666666666665,
+        "n": 100,
+        "ci_excludes_zero": true
+      },
+      "exact": {
+        "mean_diff": 0.45,
+        "ci_low": 0.35,
+        "ci_high": 0.54,
+        "n": 100,
+        "ci_excludes_zero": true
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "a": "results/grpo_base_seed0",
+  "b": "results/grpo_base_penalty_seed0",
+  "overall": {
+    "score": {
+      "mean_diff": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.0,
+      "n": 400,
+      "ci_excludes_zero": false
+    },
+    "exact": {
+      "mean_diff": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.0,
+      "n": 400,
+      "ci_excludes_zero": false
+    }
+  },
+  "slices": {
+    "clean": {
+      "score": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      },
+      "exact": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      }
+    },
+    "encoding": {
+      "score": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      },
+      "exact": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      }
+    },
+    "missing_field": {
+      "score": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      },
+      "exact": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      }
+    },
+    "renamed_field": {
+      "score": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      },
+      "exact": {
+        "mean_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 100,
+        "ci_excludes_zero": false
+      }
+    }
+  }
+}

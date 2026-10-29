@@ -1,0 +1,60 @@
+{
+  "name": "base_fp32",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": null,
+  "quant": "none",
+  "data": "synthetic test split",
+  "quality": {
+    "n": 200,
+    "field_score": {
+      "mean": 0.825,
+      "ci95": [
+        0.7983333333333335,
+        0.8491875
+      ]
+    },
+    "exact_match": {
+      "mean": 0.355,
+      "ci95": [
+        0.285,
+        0.425
+      ]
+    },
+    "valid_json_rate": 1.0
+  },
+  "latency_batch1_s": {
+    "n": 20,
+    "median": 7.595709090000128,
+    "p90": 8.618643832999624
+  },
+  "throughput": {
+    "1": {
+      "n": 20,
+      "requests_per_s": 0.12956826900815469,
+      "tokens_per_s": 8.49320003348454
+    },
+    "4": {
+      "n": 20,
+      "requests_per_s": 0.20520510980932416,
+      "tokens_per_s": 13.451194948001199
+    },
+    "16": {
+      "n": 64,
+      "requests_per_s": 0.4259803608469141,
+      "tokens_per_s": 28.147983531587496
+    }
+  },
+  "memory": {
+    "model_bytes": 1976131328,
+    "peak_cuda_bytes": null,
+    "peak_rss_bytes": 3454844928
+  },
+  "cost_per_1k_requests_usd": null,
+  "cost_note": "not computed: no hardware price given (see README for the formula)",
+  "hardware": {
+    "device": "cpu",
+    "gpu": null,
+    "cpu_threads": 2,
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39"
+  }
+}

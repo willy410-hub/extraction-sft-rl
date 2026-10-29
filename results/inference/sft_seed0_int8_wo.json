@@ -1,0 +1,60 @@
+{
+  "name": "sft_seed0_int8_wo",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "checkpoints/sft_seed0",
+  "quant": "int8_wo",
+  "data": "synthetic test split",
+  "quality": {
+    "n": 200,
+    "field_score": {
+      "mean": 0.9983333333333334,
+      "ci95": [
+        0.9958333333333335,
+        1.0
+      ]
+    },
+    "exact_match": {
+      "mean": 0.99,
+      "ci95": [
+        0.975,
+        1.0
+      ]
+    },
+    "valid_json_rate": 1.0
+  },
+  "latency_batch1_s": {
+    "n": 20,
+    "median": 22.86034257649999,
+    "p90": 24.19327381399944
+  },
+  "throughput": {
+    "1": {
+      "n": 20,
+      "requests_per_s": 0.04636974676076759,
+      "tokens_per_s": 3.1531427797321965
+    },
+    "4": {
+      "n": 20,
+      "requests_per_s": 0.11954714583156033,
+      "tokens_per_s": 8.129205916546102
+    },
+    "16": {
+      "n": 64,
+      "requests_per_s": 0.2835388482124907,
+      "tokens_per_s": 19.205326671892923
+    }
+  },
+  "memory": {
+    "model_bytes": 1041287125,
+    "peak_cuda_bytes": null,
+    "peak_rss_bytes": 4315734016
+  },
+  "cost_per_1k_requests_usd": null,
+  "cost_note": "not computed: no hardware price given (see README for the formula)",
+  "hardware": {
+    "device": "cpu",
+    "gpu": null,
+    "cpu_threads": 2,
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39"
+  }
+}

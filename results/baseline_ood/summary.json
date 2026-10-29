@@ -1,0 +1,120 @@
+{
+  "n": 200,
+  "field_score": {
+    "mean": 0.8775,
+    "ci95": [
+      0.8533333333333334,
+      0.9008333333333333
+    ]
+  },
+  "exact_match": {
+    "mean": 0.525,
+    "ci95": [
+      0.455,
+      0.6
+    ]
+  },
+  "valid_json_rate": 1.0,
+  "schema_ok_rate": 0.99,
+  "lenient_field_score": 0.8775,
+  "per_field_accuracy_when_schema_ok": {
+    "invoice_id": 0.9848484848484849,
+    "date": 0.9848484848484849,
+    "amount": 0.9545454545454546,
+    "currency": 0.9292929292929293,
+    "customer_id": 0.7929292929292929,
+    "customer_name": 0.6717171717171717
+  },
+  "slices_field_score": {
+    "clean": {
+      "n": 50,
+      "mean": 0.9433333333333332,
+      "ci": [
+        0.8965833333333333,
+        0.98
+      ]
+    },
+    "encoding": {
+      "n": 50,
+      "mean": 0.8433333333333333,
+      "ci": [
+        0.8133333333333335,
+        0.8733333333333334
+      ]
+    },
+    "missing_field": {
+      "n": 50,
+      "mean": 0.9466666666666665,
+      "ci": [
+        0.9,
+        0.98
+      ]
+    },
+    "renamed_field": {
+      "n": 50,
+      "mean": 0.7766666666666666,
+      "ci": [
+        0.73,
+        0.820083333333333
+      ]
+    }
+  },
+  "slices_exact_match": {
+    "clean": {
+      "n": 50,
+      "mean": 0.8,
+      "ci": [
+        0.68,
+        0.9
+      ]
+    },
+    "encoding": {
+      "n": 50,
+      "mean": 0.22,
+      "ci": [
+        0.12,
+        0.34
+      ]
+    },
+    "missing_field": {
+      "n": 50,
+      "mean": 0.78,
+      "ci": [
+        0.66,
+        0.88
+      ]
+    },
+    "renamed_field": {
+      "n": 50,
+      "mean": 0.3,
+      "ci": [
+        0.18,
+        0.42
+      ]
+    }
+  },
+  "hacking_checks": {
+    "null_on_present_rate": 0.07111501316944688,
+    "invented_on_missing_rate": 0.0,
+    "id_grounding_rate": 0.9969788519637462,
+    "n_schema_ok": 198
+  },
+  "name": "baseline_ood",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": null,
+  "decoding": "greedy (deterministic)",
+  "data": "synthetic test_ood split",
+  "throughput": {
+    "seconds": 546.9650780749998,
+    "n": 200,
+    "new_tokens": 13220,
+    "examples_per_s": 0.3656540573008502,
+    "tokens_per_s": 24.1697331875862
+  },
+  "hardware": {
+    "device": "cpu",
+    "gpu": null,
+    "cpu_threads": 2,
+    "platform": "Linux-6.18.44-fc-v180-x86_64-with-glibc2.39"
+  }
+}

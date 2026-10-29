@@ -1,0 +1,120 @@
+{
+  "n": 200,
+  "field_score": {
+    "mean": 0.9966666666666667,
+    "ci95": [
+      0.9933333333333334,
+      0.9991666666666668
+    ]
+  },
+  "exact_match": {
+    "mean": 0.98,
+    "ci95": [
+      0.96,
+      0.995
+    ]
+  },
+  "valid_json_rate": 1.0,
+  "schema_ok_rate": 1.0,
+  "lenient_field_score": 0.9966666666666667,
+  "per_field_accuracy_when_schema_ok": {
+    "invoice_id": 1.0,
+    "date": 0.995,
+    "amount": 1.0,
+    "currency": 1.0,
+    "customer_id": 1.0,
+    "customer_name": 0.985
+  },
+  "slices_field_score": {
+    "clean": {
+      "n": 50,
+      "mean": 0.9966666666666666,
+      "ci": [
+        0.99,
+        1.0
+      ]
+    },
+    "encoding": {
+      "n": 50,
+      "mean": 0.99,
+      "ci": [
+        0.9766666666666667,
+        1.0
+      ]
+    },
+    "missing_field": {
+      "n": 50,
+      "mean": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "renamed_field": {
+      "n": 50,
+      "mean": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "slices_exact_match": {
+    "clean": {
+      "n": 50,
+      "mean": 0.98,
+      "ci": [
+        0.94,
+        1.0
+      ]
+    },
+    "encoding": {
+      "n": 50,
+      "mean": 0.94,
+      "ci": [
+        0.86,
+        1.0
+      ]
+    },
+    "missing_field": {
+      "n": 50,
+      "mean": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "renamed_field": {
+      "n": 50,
+      "mean": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "hacking_checks": {
+    "null_on_present_rate": 0.0,
+    "invented_on_missing_rate": 0.0,
+    "id_grounding_rate": 1.0,
+    "n_schema_ok": 200
+  },
+  "name": "sft_seed0_ood",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "checkpoints/sft_seed0",
+  "decoding": "greedy (deterministic)",
+  "data": "synthetic test_ood split",
+  "throughput": {
+    "seconds": 518.5537170150001,
+    "n": 200,
+    "new_tokens": 13536,
+    "examples_per_s": 0.3856881041202037,
+    "tokens_per_s": 26.103370886855387
+  },
+  "hardware": {
+    "device": "cpu",
+    "gpu": null,
+    "cpu_threads": 2,
+    "platform": "Linux-6.18.44-fc-v180-x86_64-with-glibc2.39"
+  }
+}

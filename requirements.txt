@@ -1,0 +1,12 @@
+# Versions used for the committed results (CPU run, Python 3.13).
+torch==2.15.0
+transformers==5.21.0
+trl==1.16.0
+peft==0.21.2
+datasets==5.1.0
+accelerate==1.15.0
+numpy==2.5.3
+torchao==0.18.0
+pytest
+# GPU-only extra for 8-bit / 4-bit quantization benchmarks:
+# bitsandbytes

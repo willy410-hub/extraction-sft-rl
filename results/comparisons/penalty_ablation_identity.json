@@ -1,0 +1,7 @@
+{
+  "max_abs_weight_diff": 5.5485917982878163e-05,
+  "max_abs_weight": 0.03412832319736481,
+  "n_lora_tensors": 336,
+  "n_test_predictions": 400,
+  "n_predictions_identical": 400
+}

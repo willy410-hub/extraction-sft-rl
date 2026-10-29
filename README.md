@@ -1,0 +1,239 @@
+# extraction-sft-rl
+
+Training a small open model (Qwen2.5-0.5B-Instruct, Apache-2.0) to turn messy customer
+text into a fixed JSON schema, with **SFT (LoRA)**, **RL (GRPO) using a rule-based
+verifier as the reward**, and an **inference benchmark** (quantization, batching,
+latency, memory).
+
+> **Scope, read first.** All data in this repo is **synthetic**, generated with known
+> ground truth. Nothing here was used with real customers or in production. Every number
+> below comes from a real run whose raw output is committed under `results/`
+> (`results/RESULTS.md` is generated from those files by `scripts/make_report.py`).
+> The committed runs are **small, CPU-only runs** (2 CPU threads, no GPU), so step counts
+> are small; the same scripts run on a free Kaggle/Colab GPU at larger scale.
+
+---
+
+## Why I built this
+
+My earlier projects cover evaluation, RL environments and verifiers, but none of them
+trained a language model. I wanted one narrow, checkable task where I could own the whole
+loop: define the contract, generate data with known answers, grade automatically, train
+with SFT and RL, check whether the model is gaming the reward, and measure what it costs
+to serve.
+
+The task is structured extraction: an invoice-like message (free text, an email, or a
+`key=value` export line) goes in, and a JSON object with exactly 6 fields comes out:
+`invoice_id, date (YYYY-MM-DD), amount (number), currency (ISO code), customer_id, customer_name`.
+A field that is not in the text must be `null`.
+
+---
+
+## Results at a glance
+
+Test split: 400 synthetic items (100 per noise slice), greedy decoding.
+"Exact match" = all 6 fields correct. Brackets = 95% bootstrap CI.
+
+| model | exact match | field score | clean | encoding | missing field | renamed field |
+|---|---|---|---|---|---|---|
+| untuned base (prompted) | 0.345 [0.297, 0.393] | 0.809 | 0.65 | 0.11 | 0.57 | 0.05 |
+| SFT, 3 seeds | 0.980 / 0.995 / 0.970 | 0.995-0.999 | 0.99-1.00 | 0.92-0.98 | 0.99-1.00 | 0.98-1.00 |
+| GRPO from base, 3 seeds | 0.578 / 0.325 / 0.610 | 0.85-0.92 | 0.62-0.98 | 0.13-0.41 | **0.00 / 0.00 / 0.30** | 0.55-0.92 |
+
+Held-out **formats** (`test_ood`, 200 items: templates, label words and date/amount
+formats that never appear in training): base 0.525 [0.455, 0.600], SFT 0.980 / 0.990 / 0.950.
+
+Paired differences (same items, exact match): SFT minus base is +0.625 to +0.650 on the
+test split and +0.425 to +0.465 on `test_ood`; every 95% CI excludes zero.
+
+Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`](results/RESULTS.md).
+
+## What I learned (the honest version)
+
+1. **SFT did most of the work.** 50 optimizer steps (400 synthetic examples) took exact match
+   from 0.345 to about 0.98, and the gain held on formats the model never saw in training.
+2. **RL from the base model gamed the reward, and a metric outside the reward caught it.**
+   GRPO raised the training reward, but on the missing-field slice exact match fell to
+   0.00, 0.00 and 0.30: the policy learned to fill missing fields instead of returning
+   `null`. In the reward, inventing a value for a missing field costs only 1/6, the same
+   as any other wrong field, so nothing pushed hard against it (see point 5 for why my
+   first fix didn't work). `invented_on_missing_rate` (not part of the reward) went
+   from **0.01** for the untuned model to **1.00, 1.00 and 0.59**. Real outputs include
+   `"customer_name": "John Doe"` and copying the customer name into `customer_id`.
+3. **RL after SFT had almost nothing to learn from.** Starting GRPO from the SFT model on
+   its weakest slice (encoding, chosen from the *validation* split), 60-80% of sampled
+   groups in each logging window of a 15-step run had identical rewards, which gives GRPO zero advantage and no gradient.
+4. **Real failure cases worth naming:** one SFT seed copied a support-ticket number
+   (`TICKET #370`) into `customer_id` when the real ID was missing; on corrupted Arabic
+   names the SFT models sometimes returned a *different* name from the training pool, and
+   once invented a name that is not in the data at all.
+5. **My first reward fix did nothing, and the reason is how GRPO works.** I reran GRPO
+   (seed 0) with an extra penalty for every invented value on a missing field
+   (`--invent-penalty 2.0`). The training reward changed, the LoRA weights changed only
+   slightly (largest difference 5.5e-5, against weights up to 0.034; see `results/comparisons/penalty_ablation_identity.json`), and **all 400 test
+   predictions were identical** to the run without the penalty. GRPO learns only from
+   reward *differences inside a group* of samples for the same prompt; when all 4 samples
+   invent (or none do), the penalty moves every reward by the same amount and the
+   advantage does not change. That is my best explanation, not something I isolated with
+   a separate experiment. The same mechanism suggests where the inventing came from: the
+   model was rewarded for filling present fields (`null_on_present_rate` fell from 0.074
+   to 0.0) and that habit spread to missing fields. Fixes I would try next, in order:
+   start RL from the SFT model on harder prompts, sample more completions per prompt so
+   groups actually mix null and non-null answers, or add a KL term to the base model.
+
+### Inference (CPU, 2 threads, no GPU)
+
+200 test items for quality; latency = 20 single requests; throughput at batch 1 / 4 / 16.
+
+| model | weights | exact match | latency, batch 1 (median) | requests/s, batch 1 / 4 / 16 | serialized size |
+|---|---|---|---|---|---|
+| base | fp32 | 0.355 | 7.60 s | 0.13 / 0.21 / 0.43 | 1976 MB |
+| SFT seed 0 | fp32 | 0.990 | 7.83 s | 0.13 / 0.22 / 0.47 | 1976 MB |
+| SFT seed 0 | int8 dynamic (weights + activations) | **0.000** | 6.99 s | 0.16 / 0.34 / 0.56 | 1039 MB |
+| SFT seed 0 | int8 weight-only (torchao) | 0.990 | 22.86 s | 0.05 / 0.12 / 0.28 | 1041 MB |
+
+What this shows, on this machine:
+- **Batching** is the biggest free win: batch 16 gave about 3.6x the requests per second of
+  batch 1 for the same SFT model.
+- **Dynamic int8 broke the model completely** (valid JSON fell to 0%; in a spot check
+  it wrote LaTeX and chat replies instead). It quantizes activations to int8 as well as
+  weights; my working assumption is that large activation outliers in this model don't
+  survive that, but I did not measure the activations.
+- **Weight-only int8 kept quality** (0.990, same as fp32) and cut serialized size by
+  about 47%, but it was slower here (about 3x for single requests, about 1.7x at batch 16), because this CPU path dequantizes
+  weights on the fly without fast int8 kernels. On a GPU with proper kernels the trade-off
+  can be different; I have not measured that.
+- The embedding table (about 545 MB in fp32) stays in full precision in both int8 modes,
+  which is the main reason the size drops by 47% rather than 75%.
+- Peak process memory is *higher* for the int8 runs (4.3 to 5.5 GB vs 3.5 GB) because the
+  model is loaded in fp32 first and then quantized in the same process.
+
+**Cost.** I don't assume a hardware price. At the best measured throughput of the SFT
+fp32 model (0.47 requests/s), 1,000 requests take about 0.59 machine-hours of this CPU.
+Cost per 1,000 requests = price per hour x 1000 / (3600 x requests per second); pass
+`--usd-per-hour` to `bench_inference` to have it computed.
+
+---
+
+## How it works
+
+```
+generator (seeded, known truth)  ->  messy text  ->  model  ->  JSON  ->  verifier  ->  score
+                                                                            |
+                                     SFT target = canonical JSON            +--> GRPO reward
+```
+
+**Generator** (`extraction_rl/generator.py`). The answer is chosen first, then rendered
+into text, so grading needs no human and no LLM judge. Each example is a pure function of
+its integer seed. Train, validation and test use non-overlapping seed ranges, and a test
+checks there is no identical text across splits. Every example carries `synthetic: True`.
+
+Four noise slices, balanced exactly (`seed % 4`):
+
+| slice | what changes |
+|---|---|
+| `clean` | canonical labels, mixed date/amount formats |
+| `encoding` | real mojibake: UTF-8 bytes decoded as Windows-1252 (`Björn` -> `BjÃ¶rn`); the name is always non-ASCII so the corruption hits a field |
+| `missing_field` | `customer_id` or `customer_name` absent; the correct answer is `null` |
+| `renamed_field` | label synonyms (`Bill No.`, `Ref`, `Client code`, ...) |
+
+Two data-quality fixes found while building it, both guarded by tests:
+- `errors="replace"` destroys some bytes, so names like `José Álvarez` or `فاطمة` become
+  unrecoverable. Those would make an example unsolvable rather than hard, so only names
+  that survive an exact round trip are used, and the generator refuses to emit an
+  unrecoverable example.
+- `05/03/2026` has two readings. Day-first numeric dates are only rendered when day > 12.
+
+**Held-out formats** (`extraction_rl/ood.py`). The main test split uses new seeds but the
+same templates as training. `test_ood` uses a markdown-table and a support-ticket
+template, unseen label words (`Voucher`, `Posted`, `Payable`, ...) and unseen date/amount
+formats, to separate "learned the task" from "memorized the formats".
+
+**Verifier** (`extraction_rl/verifier.py`), the single source of truth for grading and RL:
+1. valid JSON (strict: the whole output must parse; a lenient mode that accepts a code
+   fence is reported separately as a diagnostic only),
+2. schema: exactly the 6 keys, right type or `null`,
+3. per-field comparison with partial credit (amount within 0.005, strings NFC-normalized).
+
+Partial credit matters for RL: 5/6 correct must earn more than 2/6, or the policy has no
+direction to improve in.
+
+**Evaluation** (`extraction_rl/evaluate.py`, `extraction_rl/stats.py`):
+- 95% bootstrap CI for each mean; **paired** bootstrap for model-vs-model differences,
+  because both models answer the same items;
+- per-slice results, with no CI reported below a minimum slice size of 30;
+- 3 training seeds per method; evaluation uses greedy decoding, so it is deterministic.
+
+**Reward-hacking checks** (`extraction_rl/hacking.py`), none of which are in the reward:
+- `invented_on_missing_rate`: filled a field that is not in the text,
+- `null_on_present_rate`: answered `null` for a field that *is* in the text,
+- `id_grounding_rate`: predicted IDs that appear verbatim in the source,
+- degenerate probes in the tests: all-null JSON, empty strings, `{}` and echoing the input
+  must all score at most 1/6 on every slice.
+
+---
+
+## Reproduce
+
+```bash
+pip install -r requirements.txt
+pytest -q                                   # generator, verifier, stats, training-data guards
+
+# v0.1 baseline
+python -m scripts.eval_model --name baseline --n 400
+# v0.2 SFT (CPU settings used for the committed results)
+bash scripts/run_sft_cpu.sh
+bash scripts/run_ood_cpu.sh
+# v0.3 GRPO
+bash scripts/run_grpo_cpu.sh
+# v0.4 reward ablation + inference benchmark
+bash scripts/run_ablation_and_bench_cpu.sh
+# rebuild results/RESULTS.md from the JSON files
+python -m scripts.make_report
+```
+
+On a GPU (for example a free Kaggle T4), the same scripts use bf16/fp16 automatically.
+Larger settings to try there: `train_sft --n-train 4000 --epochs 1 --batch-size 8`,
+`train_grpo --max-steps 300 --num-generations 8`, and
+`bench_inference --quant bnb8` / `--quant bnb4` (needs `bitsandbytes`).
+On CPU the options are `--quant none`, `int8_dynamic` and `int8_wo` (torchao).
+I did not run the GPU settings for the committed results.
+
+Versions used: torch 2.15.0 (CPU), transformers 5.21.0, TRL 1.16.0, PEFT 0.21.2,
+torchao 0.18.0, Python 3.13. LoRA: r=16, alpha=32, all linear layers.
+
+---
+
+## Limitations
+
+- **Synthetic, narrow task.** 6 fields, 3 base templates plus 2 held-out ones, a fixed
+  name pool. High scores here say nothing about real invoices, real customers or other
+  schemas. The `test_ood` split is still generated by me, so it tests format shift
+  I thought of, not the unknown shifts real data would bring.
+- **Small CPU runs.** SFT: 50 steps x 8 examples. GRPO: 60 steps x 1 prompt x 4 samples.
+  GRPO results vary a lot across seeds (0.325 to 0.610) and would need longer runs to
+  say more. The reward-penalty ablation was run on a single seed only, and its
+  explanation is a hypothesis, not a tested result.
+- **SFT targets come from the generator**, so SFT here is behavior cloning on perfect
+  demonstrations; that is an easier setting than learning from noisy human labels.
+- **The name pool is shared** between train and test. The encoding slice therefore tests
+  recovery of known names, and an SFT model can "repair" a corrupted name to a different
+  pool name, which is one of the failures listed above.
+- **No production claims.** There is no serving stack, monitoring or real traffic.
+- **Quantization was measured on CPU only.** `int8_dynamic` uses
+  `torch.ao.quantization.quantize_dynamic`, which PyTorch has deprecated in favor of
+  torchao; it is kept only to document that it broke this model. No GPU numbers, no
+  4-bit numbers.
+- **One model for the inference table** (SFT seed 0), 200 items for quality and 20
+  requests for latency, on a shared 2-thread machine, so timings are rough.
+
+---
+
+## Repo layout
+
+```
+extraction_rl/   schema, generator, ood split, prompts, verifier, stats, hacking checks, inference
+scripts/         eval_model, compare, train_sft, train_grpo, bench_inference, make_report, run_*_cpu.sh
+tests/           pytest suite (no model downloads needed)
+results/         committed raw outputs: summary.json + predictions.jsonl per run, comparisons/, inference/
+```

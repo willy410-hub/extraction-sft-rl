@@ -1,0 +1,120 @@
+{
+  "n": 400,
+  "field_score": {
+    "mean": 0.80875,
+    "ci95": [
+      0.7891666666666667,
+      0.8279270833333333
+    ]
+  },
+  "exact_match": {
+    "mean": 0.345,
+    "ci95": [
+      0.2975,
+      0.3925
+    ]
+  },
+  "valid_json_rate": 1.0,
+  "schema_ok_rate": 0.985,
+  "lenient_field_score": 0.80875,
+  "per_field_accuracy_when_schema_ok": {
+    "invoice_id": 0.9593908629441624,
+    "date": 0.9670050761421319,
+    "amount": 0.7461928934010152,
+    "currency": 0.8401015228426396,
+    "customer_id": 0.7563451776649747,
+    "customer_name": 0.6573604060913706
+  },
+  "slices_field_score": {
+    "clean": {
+      "n": 100,
+      "mean": 0.9383333333333335,
+      "ci": [
+        0.9216249999999999,
+        0.955
+      ]
+    },
+    "encoding": {
+      "n": 100,
+      "mean": 0.7899999999999998,
+      "ci": [
+        0.7682916666666665,
+        0.8133333333333331
+      ]
+    },
+    "missing_field": {
+      "n": 100,
+      "mean": 0.895,
+      "ci": [
+        0.855,
+        0.9266666666666667
+      ]
+    },
+    "renamed_field": {
+      "n": 100,
+      "mean": 0.6116666666666667,
+      "ci": [
+        0.5716666666666668,
+        0.65
+      ]
+    }
+  },
+  "slices_exact_match": {
+    "clean": {
+      "n": 100,
+      "mean": 0.65,
+      "ci": [
+        0.55,
+        0.74
+      ]
+    },
+    "encoding": {
+      "n": 100,
+      "mean": 0.11,
+      "ci": [
+        0.05,
+        0.18
+      ]
+    },
+    "missing_field": {
+      "n": 100,
+      "mean": 0.57,
+      "ci": [
+        0.47,
+        0.67
+      ]
+    },
+    "renamed_field": {
+      "n": 100,
+      "mean": 0.05,
+      "ci": [
+        0.01,
+        0.1
+      ]
+    }
+  },
+  "hacking_checks": {
+    "null_on_present_rate": 0.0741067490074989,
+    "invented_on_missing_rate": 0.010309278350515464,
+    "id_grounding_rate": 1.0,
+    "n_schema_ok": 394
+  },
+  "name": "baseline",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": null,
+  "decoding": "greedy (deterministic)",
+  "data": "synthetic test split",
+  "throughput": {
+    "seconds": 1080.6206085029999,
+    "n": 400,
+    "new_tokens": 26427,
+    "examples_per_s": 0.3701576638947559,
+    "tokens_per_s": 24.455391459366783
+  },
+  "hardware": {
+    "device": "cpu",
+    "gpu": null,
+    "cpu_threads": 2,
+    "platform": "Linux-6.18.44-fc-v180-x86_64-with-glibc2.39"
+  }
+}

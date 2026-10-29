@@ -1,0 +1,18 @@
+{
+  "base_fp32": {
+    "quant": "none",
+    "serialized_state_dict_bytes": 1976239035
+  },
+  "sft_seed0_fp32": {
+    "quant": "none",
+    "serialized_state_dict_bytes": 1976239035
+  },
+  "sft_seed0_int8_dynamic": {
+    "quant": "int8_dynamic",
+    "serialized_state_dict_bytes": 1039023701
+  },
+  "sft_seed0_int8_wo": {
+    "quant": "int8_wo",
+    "serialized_state_dict_bytes": 1041287125
+  }
+}
