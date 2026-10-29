@@ -1,4 +1,13 @@
+<img src="docs/img/banner.svg" alt="extraction-sft-rl: training a 0.5B model to turn messy text into strict JSON" width="100%"/>
+
 # extraction-sft-rl
+
+![python](https://img.shields.io/badge/python-3.13-2DD4BF?style=for-the-badge&labelColor=0B1220)
+![tests](https://img.shields.io/badge/tests-61%20passing-A3E635?style=for-the-badge&labelColor=0B1220)
+![license](https://img.shields.io/badge/license-MIT-38BDF8?style=for-the-badge&labelColor=0B1220)
+![model](https://img.shields.io/badge/model-Qwen2.5--0.5B-A78BFA?style=for-the-badge&labelColor=0B1220)
+![runs on](https://img.shields.io/badge/runs%20on-CPU-F5A524?style=for-the-badge&labelColor=0B1220)
+![data](https://img.shields.io/badge/data-100%25%20synthetic-FB7185?style=for-the-badge&labelColor=0B1220)
 
 Training a small open model (Qwen2.5-0.5B-Instruct, Apache-2.0) to turn messy customer
 text into a fixed JSON schema, with **SFT (LoRA)**, **RL (GRPO) using a rule-based
@@ -47,6 +56,8 @@ formats that never appear in training): base 0.525 [0.455, 0.600], SFT 0.980 / 0
 Paired differences (same items, exact match): SFT minus base is +0.625 to +0.650 on the
 test split and +0.425 to +0.465 on `test_ood`; every 95% CI excludes zero.
 
+<img src="docs/img/slices.svg" alt="Exact match per noise slice for the untuned base, SFT and GRPO from base; GRPO falls to near zero on the missing-field slice" width="100%"/>
+
 Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`](results/RESULTS.md).
 
 ## What I learned (the honest version)
@@ -66,6 +77,8 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
    from **0.01** for the untuned model to **1.00, 1.00 and 0.59**. Real outputs include
    `"customer_name": "John Doe"` (seeds 0 and 1) and copying the customer name into
    `customer_id` (16, 59 and 45 of 400 test answers for seeds 0, 1 and 2).
+   <img src="docs/img/reward_hacking.svg" alt="GRPO training reward rising over 60 steps for 3 seeds, next to invented_on_missing_rate of 0.01 for base, 0 for SFT and 1.00, 1.00, 0.59 for GRPO" width="100%"/>
+
 3. **RL after SFT had almost nothing to learn from.** Starting GRPO from the SFT model on
    its weakest slice (encoding, chosen from the *validation* split), 60-80% of sampled
    groups in each logging window of a 15-step run had identical rewards, which gives GRPO zero advantage and no gradient.
@@ -101,6 +114,8 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
 | SFT seed 0 | fp32 | 0.990 | 7.83 s | 0.13 / 0.22 / 0.47 | 1976 MB |
 | SFT seed 0 | int8 dynamic (weights + activations) | **0.000** | 6.99 s | 0.16 / 0.34 / 0.56 | 1039 MB |
 | SFT seed 0 | int8 weight-only (torchao) | 0.990 | 22.86 s | 0.05 / 0.12 / 0.28 | 1041 MB |
+
+<img src="docs/img/inference.svg" alt="Requests per second by batch size for fp32, int8 weight-only and int8 dynamic, next to exact match: 0.990, 0.990 and 0.000" width="100%"/>
 
 What this shows, on this machine:
 - **Batching** is the biggest free win: batch 16 gave about 3.6x the requests per second of
@@ -143,10 +158,29 @@ Cost per 1,000 requests = price per hour x 1000 / (3600 x requests per second); 
 
 ## How it works
 
-```
-generator (seeded, known truth)  ->  messy text  ->  model  ->  JSON  ->  verifier  ->  score
-                                                                            |
-                                     SFT target = canonical JSON            +--> GRPO reward
+```mermaid
+flowchart LR
+    classDef data fill:#0f2f2b,stroke:#2DD4BF,color:#E6EDF7,stroke-width:2px
+    classDef model fill:#10233F,stroke:#38BDF8,color:#E6EDF7,stroke-width:2px
+    classDef rule fill:#1b2a41,stroke:#F5A524,color:#E6EDF7,stroke-width:2px
+    classDef check fill:#2a1620,stroke:#FB7185,color:#E6EDF7,stroke-width:2px
+
+    G["Generator<br/>seeded, known truth"]:::data
+    T["Messy text<br/>4 noise slices"]:::data
+    M["Model<br/>Qwen2.5-0.5B + LoRA"]:::model
+    J["JSON output"]:::model
+    V{"Verifier<br/>JSON · schema · fields"}:::rule
+    S["Score + 95% CI<br/>per slice"]:::rule
+    H["Reward-hacking checks<br/>not in the reward"]:::check
+    SFT["SFT target<br/>canonical JSON"]:::data
+    R["GRPO reward"]:::rule
+
+    G --> T --> M --> J --> V --> S
+    G -. truth .-> V
+    G --> SFT -. train .-> M
+    V --> R -. train .-> M
+    J --> H
+    linkStyle default stroke:#8FA3C0,stroke-width:1.5px
 ```
 
 **Generator** (`extraction_rl/generator.py`). The answer is chosen first, then rendered
@@ -217,6 +251,8 @@ bash scripts/run_grpo_cpu.sh
 bash scripts/run_ablation_and_bench_cpu.sh
 # rebuild results/RESULTS.md from the JSON files
 python -m scripts.make_report
+# redraw the README figures from the same JSON files
+python -m scripts.make_figs
 ```
 
 On a GPU (for example a free Kaggle T4), the same scripts use bf16/fp16 automatically.
@@ -260,7 +296,8 @@ torchao 0.18.0, Python 3.13. LoRA: r=16, alpha=32, all linear layers.
 
 ```
 extraction_rl/   schema, generator, ood split, prompts, verifier, stats, hacking checks, inference
-scripts/         eval_model, compare, train_sft, train_grpo, bench_inference, make_report, run_*_cpu.sh
+scripts/         eval_model, compare, train_sft, train_grpo, bench_inference, make_report, make_figs, run_*_cpu.sh
+docs/img/        README figures (SVG), drawn by scripts/make_figs.py from results/
 tests/           pytest suite (no model downloads needed)
 results/         committed raw outputs: summary.json + predictions.jsonl per run, comparisons/, inference/
 ```
