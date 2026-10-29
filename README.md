@@ -56,20 +56,26 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
 2. **In these small RL runs, the policy started inventing values, and a metric outside
    the reward caught it.** These are 60-step runs (1 prompt x 4 samples per step) with a
    large spread across seeds (exact match 0.325 to 0.610), so this is what happened here,
-   not a general claim about RL. GRPO raised the training reward, but on the missing-field
+   not a general claim about RL. The logged training reward rose (mean of the first logging
+   window 0.64-0.73, last window 0.82-0.89, across the 3 seeds; noisy, since each window
+   covers only 5 prompts), but on the missing-field
    slice exact match fell to 0.00, 0.00 and 0.30 (seeds 0, 1, 2): the model filled missing
    fields instead of returning `null`. In the reward, inventing a value for a missing field costs only 1/6, the same
    as any other wrong field, so nothing pushed hard against it (see point 5 for why my
    first fix didn't work). `invented_on_missing_rate` (not part of the reward) went
    from **0.01** for the untuned model to **1.00, 1.00 and 0.59**. Real outputs include
-   `"customer_name": "John Doe"` and copying the customer name into `customer_id`.
+   `"customer_name": "John Doe"` (seeds 0 and 1) and copying the customer name into
+   `customer_id` (16, 59 and 45 of 400 test answers for seeds 0, 1 and 2).
 3. **RL after SFT had almost nothing to learn from.** Starting GRPO from the SFT model on
    its weakest slice (encoding, chosen from the *validation* split), 60-80% of sampled
    groups in each logging window of a 15-step run had identical rewards, which gives GRPO zero advantage and no gradient.
-4. **Real failure cases worth naming:** one SFT seed copied a support-ticket number
-   (`TICKET #370`) into `customer_id` when the real ID was missing; on corrupted Arabic
-   names the SFT models sometimes returned a *different* name from the training pool, and
-   once invented a name that is not in the data at all.
+4. **Real failure cases worth naming:** on the held-out support-ticket template, SFT seed 2
+   copied the ticket number into `customer_id` when the real ID was missing (`370` from
+   `TICKET #370`), on 7 of its `test_ood` missing-field items; this is why its missing-field
+   score there is 0.86. On corrupted names, most wrong SFT answers were a *different* name
+   from the training pool (usually `أحمد سمير`); the rest were broken repairs of
+   `Inès Côté` (`Inès`, `Inès Cité`, `Isaac C'té`), and once, on the validation split, a
+   name that is not in the pool at all (`Carlos Ignacio`).
 5. **My first reward fix did not change the model's answers, and I don't know why yet.** I reran GRPO
    (seed 0) with an extra penalty for every invented value on a missing field
    (`--invent-penalty 2.0`). The training reward changed, the LoRA weights changed only
@@ -81,7 +87,9 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
    the cause. Two candidates I would test: (a) the run is too short (60 steps) for the
    change to matter; (b) GRPO learns only from reward differences *inside* a group of
    samples for the same prompt, so if all 4 samples invent (or none do), the penalty shifts
-   every reward equally and the update barely changes.
+   every reward equally and the update barely changes. One logged detail fits (b) without
+   proving it: in every logging window, the share of groups whose 4 rewards were all equal
+   was the same in both runs (0.0 to 1.0, 0.43 on average over the 12 windows).
 
 ### Inference (CPU, 2 threads, no GPU)
 
@@ -195,7 +203,8 @@ direction to improve in.
 
 ```bash
 pip install -r requirements.txt
-pytest -q                                   # generator, verifier, stats, training-data guards
+pytest -q                                   # 61 tests, no model download
+                                            # (training-data tests import TRL/datasets, so install requirements first)
 
 # v0.1 baseline
 python -m scripts.eval_model --name baseline --n 400
@@ -255,3 +264,9 @@ scripts/         eval_model, compare, train_sft, train_grpo, bench_inference, ma
 tests/           pytest suite (no model downloads needed)
 results/         committed raw outputs: summary.json + predictions.jsonl per run, comparisons/, inference/
 ```
+
+---
+
+## License
+
+Code: MIT (see `LICENSE`). The base model, Qwen2.5-0.5B-Instruct, is Apache-2.0 and is downloaded from its own source, not included here.
