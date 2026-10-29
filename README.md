@@ -10,7 +10,8 @@ latency, memory).
 > below comes from a real run whose raw output is committed under `results/`
 > (`results/RESULTS.md` is generated from those files by `scripts/make_report.py`).
 > The committed runs are **small, CPU-only runs** (2 CPU threads, no GPU), so step counts
-> are small; the same scripts run on a free Kaggle/Colab GPU at larger scale.
+> are small. The scripts are written to use a GPU when one is present, but **I have not
+> tested the GPU path**.
 
 ---
 
@@ -52,10 +53,12 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
 
 1. **SFT did most of the work.** 50 optimizer steps (400 synthetic examples) took exact match
    from 0.345 to about 0.98, and the gain held on formats the model never saw in training.
-2. **RL from the base model gamed the reward, and a metric outside the reward caught it.**
-   GRPO raised the training reward, but on the missing-field slice exact match fell to
-   0.00, 0.00 and 0.30: the policy learned to fill missing fields instead of returning
-   `null`. In the reward, inventing a value for a missing field costs only 1/6, the same
+2. **In these small RL runs, the policy started inventing values, and a metric outside
+   the reward caught it.** These are 60-step runs (1 prompt x 4 samples per step) with a
+   large spread across seeds (exact match 0.325 to 0.610), so this is what happened here,
+   not a general claim about RL. GRPO raised the training reward, but on the missing-field
+   slice exact match fell to 0.00, 0.00 and 0.30 (seeds 0, 1, 2): the model filled missing
+   fields instead of returning `null`. In the reward, inventing a value for a missing field costs only 1/6, the same
    as any other wrong field, so nothing pushed hard against it (see point 5 for why my
    first fix didn't work). `invented_on_missing_rate` (not part of the reward) went
    from **0.01** for the untuned model to **1.00, 1.00 and 0.59**. Real outputs include
@@ -67,19 +70,18 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
    (`TICKET #370`) into `customer_id` when the real ID was missing; on corrupted Arabic
    names the SFT models sometimes returned a *different* name from the training pool, and
    once invented a name that is not in the data at all.
-5. **My first reward fix did nothing, and the reason is how GRPO works.** I reran GRPO
+5. **My first reward fix did not change the model's answers, and I don't know why yet.** I reran GRPO
    (seed 0) with an extra penalty for every invented value on a missing field
    (`--invent-penalty 2.0`). The training reward changed, the LoRA weights changed only
    slightly (largest difference 5.5e-5, against weights up to 0.034; see `results/comparisons/penalty_ablation_identity.json`), and **all 400 test
-   predictions were identical** to the run without the penalty. GRPO learns only from
-   reward *differences inside a group* of samples for the same prompt; when all 4 samples
-   invent (or none do), the penalty moves every reward by the same amount and the
-   advantage does not change. That is my best explanation, not something I isolated with
-   a separate experiment. The same mechanism suggests where the inventing came from: the
-   model was rewarded for filling present fields (`null_on_present_rate` fell from 0.074
-   to 0.0) and that habit spread to missing fields. Fixes I would try next, in order:
-   start RL from the SFT model on harder prompts, sample more completions per prompt so
-   groups actually mix null and non-null answers, or add a KL term to the base model.
+   predictions were identical** to the run without the penalty. I checked that the
+   penalty was really wired in: `invent_penalty: 2.0` is recorded in the run's
+   `train_meta.json`, and the logged reward is `penalized_verifier_reward`. So the two runs
+   did differ in training, just not enough to flip any greedy answer. I have not isolated
+   the cause. Two candidates I would test: (a) the run is too short (60 steps) for the
+   change to matter; (b) GRPO learns only from reward differences *inside* a group of
+   samples for the same prompt, so if all 4 samples invent (or none do), the penalty shifts
+   every reward equally and the update barely changes.
 
 ### Inference (CPU, 2 threads, no GPU)
 
@@ -95,10 +97,11 @@ Full tables, per-slice numbers and all paired comparisons: [`results/RESULTS.md`
 What this shows, on this machine:
 - **Batching** is the biggest free win: batch 16 gave about 3.6x the requests per second of
   batch 1 for the same SFT model.
-- **Dynamic int8 broke the model completely** (valid JSON fell to 0%; in a spot check
-  it wrote LaTeX and chat replies instead). It quantizes activations to int8 as well as
-  weights; my working assumption is that large activation outliers in this model don't
-  survive that, but I did not measure the activations.
+- **Dynamic int8 failed completely in my setup** (valid JSON fell to 0%; in a spot check
+  it wrote LaTeX and chat replies instead). Treat this as "this configuration broke in my
+  run", not as a finding about int8: I did not isolate whether the cause is the method
+  (it quantizes activations as well as weights, and activation outliers are one possible
+  reason) or how I applied it through PyTorch's deprecated `quantize_dynamic` path.
 - **Weight-only int8 kept quality** (0.990, same as fp32) and cut serialized size by
   about 47%, but it was slower here (about 3x for single requests, about 1.7x at batch 16), because this CPU path dequantizes
   weights on the fly without fast int8 kernels. On a GPU with proper kernels the trade-off
@@ -112,6 +115,21 @@ What this shows, on this machine:
 fp32 model (0.47 requests/s), 1,000 requests take about 0.59 machine-hours of this CPU.
 Cost per 1,000 requests = price per hour x 1000 / (3600 x requests per second); pass
 `--usd-per-hour` to `bench_inference` to have it computed.
+
+---
+
+## What I'd do next
+
+1. Run the same scripts on a GPU (Kaggle T4) at larger scale: SFT on 4,000 examples, GRPO
+   for 300+ steps with 8 samples per prompt, and the 8-bit / 4-bit bitsandbytes benchmark.
+2. Test the two explanations for the null-penalty ablation: a longer run, and logging how
+   often a group mixes null and non-null answers on missing-field prompts.
+3. Start GRPO from the SFT model on prompts it still gets wrong, and check whether RL adds
+   anything on top of SFT there.
+4. Make the test harder: names outside the training pool, more templates, and distractor
+   numbers (like the ticket number that fooled one SFT seed).
+5. Isolate the dynamic-int8 failure (quantize only some layers, compare per-layer
+   outputs with fp32) instead of leaving it as an unexplained break.
 
 ---
 
