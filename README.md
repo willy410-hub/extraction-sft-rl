@@ -153,6 +153,8 @@ Cost per 1,000 requests = price per hour x 1000 / (3600 x requests per second); 
    numbers (like the ticket number that fooled one SFT seed).
 5. Isolate the dynamic-int8 failure (quantize only some layers, compare per-layer
    outputs with fp32) instead of leaving it as an unexplained break.
+6. Add a distillation step: a larger model (for example Qwen2.5-1.5B) generates answers on a free GPU, 
+   the 0.5B model learns from them, and I compare it with the SFT model here.   
 
 ---
 
@@ -289,6 +291,8 @@ torchao 0.18.0, Python 3.13. LoRA: r=16, alpha=32, all linear layers.
   4-bit numbers.
 - **One model for the inference table** (SFT seed 0), 200 items for quality and 20
   requests for latency, on a shared 2-thread machine, so timings are rough.
+- **Text only, no serving** This repo covers text-to-JSON extraction with SFT, GRPO and CPU inference measurements. 
+  It does not cover distillation, multimodal or robotics models, or a deployed serving stack.  
 
 ---
 
