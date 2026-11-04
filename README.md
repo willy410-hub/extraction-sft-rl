@@ -1,4 +1,4 @@
-<img src="docs/img/banner.svg" alt="extraction-sft-rl: training a 0.5B model to turn messy text into strict JSON" width="100%"/>
+<img width="1883" height="852" alt="image" src="https://github.com/user-attachments/assets/1505caa7-8b81-475d-af08-e38f77654d1c" /><img src="docs/img/banner.svg" alt="extraction-sft-rl: training a 0.5B model to turn messy text into strict JSON" width="100%"/>
 
 # extraction-sft-rl
 
@@ -8,6 +8,7 @@
 ![model](https://img.shields.io/badge/model-Qwen2.5--0.5B-A78BFA?style=for-the-badge&labelColor=0B1220)
 ![runs on](https://img.shields.io/badge/runs%20on-CPU-F5A524?style=for-the-badge&labelColor=0B1220)
 ![data](https://img.shields.io/badge/data-100%25%20synthetic-FB7185?style=for-the-badge&labelColor=0B1220)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/willy410-hub/extraction-sft-rl/blob/main/notebooks/try_extraction_sft_rl.ipynb)
 
 Training a small open model (Qwen2.5-0.5B-Instruct, Apache-2.0) to turn messy customer
 text into a fixed JSON schema, with **SFT (LoRA)**, **RL (GRPO) using a rule-based
