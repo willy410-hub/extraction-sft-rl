@@ -1,4 +1,4 @@
-<img width="1883" height="852" alt="image" src="https://github.com/user-attachments/assets/1505caa7-8b81-475d-af08-e38f77654d1c" /><img src="docs/img/banner.svg" alt="extraction-sft-rl: training a 0.5B model to turn messy text into strict JSON" width="100%"/>
+<img src="docs/img/banner.svg" alt="extraction-sft-rl: training a 0.5B model to turn messy text into strict JSON" width="100%"/>
 
 # extraction-sft-rl
 
